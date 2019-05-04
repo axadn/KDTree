@@ -27,17 +27,8 @@ using UnityEngine;
 
 namespace DataStructures.ViliWonka.Tests {
 
-    using KDTree;
-    public enum QType {
 
-        ClosestPoint,
-        KNearest,
-        Radius,
-        Interval
-    }
-
-
-    public class KDTreeQueryTests : MonoBehaviour {
+    public class KDTreeQueryGenericTests : MonoBehaviour {
 
         public QType QueryType;
 
@@ -50,37 +41,46 @@ namespace DataStructures.ViliWonka.Tests {
 
         public Vector3 IntervalSize = new Vector3(0.2f, 0.2f, 0.2f);
 
-        Vector3[] pointCloud;
-        KDTree tree;
+        public JustPoint[] points;
 
-        KDQuery query;
+        KDTree.KDTree<JustPoint> tree;
 
-        void Start() {
+        KDTree.KDQuery query;
 
-            pointCloud = new Vector3[20000];
+        [ContextMenu("GeneratePoints")]
+        public void GeneratePoints()
+        {
+            Destroy(GameObject.Find("Parent"));
+            points = new JustPoint[2000];
+            var parent = new GameObject("Parent").transform;
 
-            query = new KDQuery();
-
-            for(int i = 0; i < pointCloud.Length; i++) {
-
-                pointCloud[i] = new Vector3(
+            for (int i = 0; i < points.Length; i++)
+            {
+                var trans = new GameObject("P", typeof(JustPoint)).transform;
+                trans.SetParent(parent);
+                trans.position = new Vector3(
 
                     (1f + Random.value * 0.25f),
                     (1f + Random.value * 0.25f),
                     (1f + Random.value * 0.25f)
                 );
-
+                points[i] = trans.GetComponent<JustPoint>();
             }
 
-            for(int i = 0; i < pointCloud.Length; i++) {
-
-                for(int j=0; j < i; j++) {
-
-                    pointCloud[i] += LorenzStep(pointCloud[i]) * 0.01f;
+            for (int i = 0; i < points.Length; i++)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    points[i].transform.position += LorenzStep(points[i].transform.position) * 0.01f;
                 }
             }
+        }
 
-            tree = new KDTree(pointCloud, 32);
+        void Start() {
+
+            query = new KDTree.KDQuery();
+
+            tree = new KDTree.KDTree<JustPoint>(points, 8);
         }
 
         Vector3 LorenzStep(Vector3 p) {
@@ -101,10 +101,10 @@ namespace DataStructures.ViliWonka.Tests {
 
             for(int i = 0; i < tree.Count; i++) {
 
-                tree.Points[i] += LorenzStep(tree.Points[i]) * Time.deltaTime * 0.1f;
+                //tree.Comps[i].transform.position += LorenzStep(tree.Comps[i].transform.position) * Time.deltaTime * 0.1f;
             }
 
-            tree.Rebuild();
+            //tree.Rebuild();
         }
 
         private void OnDrawGizmos() {
@@ -115,9 +115,9 @@ namespace DataStructures.ViliWonka.Tests {
 
             Vector3 size = 0.2f * Vector3.one;
 
-            for(int i = 0; i < pointCloud.Length; i++) {
+            for(int i = 0; i < points.Length; i++) {
 
-                Gizmos.DrawCube(pointCloud[i], size);
+                Gizmos.DrawCube(points[i].transform.position, size);
             }
 
             var resultIndices = new List<int>();
@@ -142,7 +142,7 @@ namespace DataStructures.ViliWonka.Tests {
 
                 case QType.Radius: {
 
-                    query.Radius(tree, transform.position, Radius, 0, resultIndices);
+                    query.Radius(tree, transform.position, Radius,0, resultIndices);
 
                     Gizmos.DrawWireSphere(transform.position, Radius);
                 }
@@ -162,7 +162,7 @@ namespace DataStructures.ViliWonka.Tests {
 
             for(int i = 0; i < resultIndices.Count; i++) {
 
-                Gizmos.DrawCube(pointCloud[resultIndices[i]], 2f * size);
+                Gizmos.DrawCube(points[resultIndices[i]].transform.position, 2f * size);
             }
 
             Gizmos.color = Color.green;

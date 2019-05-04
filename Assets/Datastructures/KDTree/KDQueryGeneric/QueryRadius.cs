@@ -36,15 +36,24 @@ namespace DataStructures.ViliWonka.KDTree {
         /// <param name="queryPosition">Position</param>
         /// <param name="queryRadius">Radius</param>
         /// <param name="resultIndices">Initialized list, cleared.</param>
-        public void Radius(KDTree tree, Vector3 queryPosition, float queryMaxRadius, float queryMinRadius, List<int> resultIndices) {
-
+        public T[] Radius<T>(KDTree<T> tree, Vector3 queryPosition, float maxRadius, float minRadius) where T : Component
+        {
+            List<int> indexes = new List<int>();
+            Radius(tree, queryPosition, maxRadius,minRadius, indexes);
+            T[] result = new T[indexes.Count];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = tree.Comps[indexes[i]];
+            return result;
+        }
+        public void Radius<T>(KDTree<T> tree, Vector3 queryPosition, float maxRadius, float minRadius, List<int> resultIndices) where T : Component
+        {
             Reset();
 
-            Vector3[] points = tree.Points;
+            Vector3[] points = tree.Positions;
             int[] permutation = tree.Permutation;
 
-            float squaredMaxRadius = queryMaxRadius * queryMaxRadius;
-            float squaredMinRadius = queryMinRadius * queryMinRadius;
+            float squaredMaxRadius = maxRadius * maxRadius;
+            float squaredMinRadius = minRadius * minRadius;
 
             var rootNode = tree.RootNode;
 
@@ -121,9 +130,9 @@ namespace DataStructures.ViliWonka.KDTree {
                         int index = permutation[i];
 
                         float sqrMagnitude = Vector3.SqrMagnitude(points[index] - queryPosition);
-                        if (squaredMinRadius <= sqrMagnitude && sqrMagnitude <= squaredMaxRadius)
-                        {
-                                resultIndices.Add(index);
+                        if ( squaredMinRadius <= sqrMagnitude && sqrMagnitude <= squaredMaxRadius) {
+
+                            resultIndices.Add(index);
                         }
                     }
 

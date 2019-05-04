@@ -29,29 +29,25 @@ namespace DataStructures.ViliWonka.KDTree {
 
     public partial class KDQuery {
 
-        /// <summary>
-        /// Search by radius method.
-        /// </summary>
-        /// <param name="tree">Tree to do search on</param>
-        /// <param name="queryPosition">Position</param>
-        /// <param name="queryRadius">Radius</param>
-        /// <param name="resultIndices">Initialized list, cleared.</param>
-        public void Radius(KDTree tree, Vector3 queryPosition, float queryMaxRadius, float queryMinRadius, List<int> resultIndices) {
+        public void Interval<T>(KDTree<T> tree, Vector3 min, Vector3 max, List<int> resultIndices) where T : Component
+        {
 
             Reset();
 
-            Vector3[] points = tree.Points;
+            Vector3[] points = tree.Positions;
             int[] permutation = tree.Permutation;
-
-            float squaredMaxRadius = queryMaxRadius * queryMaxRadius;
-            float squaredMinRadius = queryMinRadius * queryMinRadius;
 
             var rootNode = tree.RootNode;
 
-            PushToQueue(rootNode, rootNode.bounds.ClosestPoint(queryPosition));
+            PushToQueue(
+
+                rootNode,
+                rootNode.bounds.ClosestPoint((min + max) / 2)
+            );
 
             KDQueryNode queryNode = null;
             KDNode node = null;
+
 
             // KD search with pruning (don't visit areas which distance is more away than range)
             // Recursion done on Stack
@@ -79,12 +75,9 @@ namespace DataStructures.ViliWonka.KDTree {
 
                         tempClosestPoint[partitionAxis] = partitionCoord;
 
-                        float sqrDist = Vector3.SqrMagnitude(tempClosestPoint - queryPosition);
-
                         // testing other side
                         if(node.positiveChild.Count != 0
-                        && sqrDist <= squaredMaxRadius
-                        && sqrDist >= squaredMinRadius) {
+                        && tempClosestPoint[partitionAxis] <= max[partitionAxis]) {
 
                             PushToQueue(node.positiveChild, tempClosestPoint);
                         }
@@ -102,12 +95,9 @@ namespace DataStructures.ViliWonka.KDTree {
                         // project the tempClosestPoint to other bound
                         tempClosestPoint[partitionAxis] = partitionCoord;
 
-                        float sqrDist = Vector3.SqrMagnitude(tempClosestPoint - queryPosition);
-
                         // testing other side
                         if(node.negativeChild.Count != 0
-                        && sqrDist <= squaredMaxRadius
-                        && sqrDist >= squaredMinRadius) {
+                        && tempClosestPoint[partitionAxis] >= min[partitionAxis]) {
 
                             PushToQueue(node.negativeChild, tempClosestPoint);
                         }
@@ -116,20 +106,47 @@ namespace DataStructures.ViliWonka.KDTree {
                 else {
 
                     // LEAF
-                    for(int i = node.start; i < node.end; i++) {
 
-                        int index = permutation[i];
+                    // testing if node bounds are inside the query interval
+                    if(node.bounds.min[0] >= min[0]
+                    && node.bounds.min[1] >= min[1]
+                    && node.bounds.min[2] >= min[2]
 
-                        float sqrMagnitude = Vector3.SqrMagnitude(points[index] - queryPosition);
-                        if (squaredMinRadius <= sqrMagnitude && sqrMagnitude <= squaredMaxRadius)
-                        {
+                    && node.bounds.max[0] <= max[0]
+                    && node.bounds.max[1] <= max[1]
+                    && node.bounds.max[2] <= max[2]) {
+
+                        for(int i = node.start; i < node.end; i++) {
+
+                            resultIndices.Add(permutation[i]);
+                        }
+
+                    }
+                    // node is not inside query interval, need to do test on each point separately
+                    else {
+
+                        for(int i = node.start; i < node.end; i++) {
+
+                            int index = permutation[i];
+
+                            Vector3 v = points[index];
+
+                            if(v[0] >= min[0]
+                            && v[1] >= min[1]
+                            && v[2] >= min[2]
+
+                            && v[0] <= max[0]
+                            && v[1] <= max[1]
+                            && v[2] <= max[2]) {
+
                                 resultIndices.Add(index);
+                            }
                         }
                     }
 
                 }
             }
         }
-
     }
+
 }
