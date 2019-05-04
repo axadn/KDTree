@@ -187,7 +187,7 @@ namespace DataStructures.ViliWonka.Tests {
             float radius = 0.25f;
 
             results.Clear();
-            query.Radius(tree, position, radius, results);
+            query.Radius(tree, position, radius,0, results);
 
             stopwatch.Stop();
 
